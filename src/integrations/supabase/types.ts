@@ -14,16 +14,200 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          assigned_doctor_id: string | null
+          assigned_nurse_id: string | null
+          created_at: string
+          diagnosis: string | null
+          facility_from: string
+          facility_to: string
+          id: string
+          notes: string | null
+          patient_id: string
+          reason: string
+          referring_doctor_id: string
+          status: Database["public"]["Enums"]["referral_status"]
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          assigned_doctor_id?: string | null
+          assigned_nurse_id?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          facility_from: string
+          facility_to: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          reason: string
+          referring_doctor_id: string
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+          urgency: string
+        }
+        Update: {
+          assigned_doctor_id?: string | null
+          assigned_nurse_id?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          facility_from?: string
+          facility_to?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          reason?: string
+          referring_doctor_id?: string
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_assigned_doctor_id_fkey"
+            columns: ["assigned_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_assigned_nurse_id_fkey"
+            columns: ["assigned_nurse_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_doctor_id_fkey"
+            columns: ["referring_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          role: Database["public"]["Enums"]["app_role"]
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          role: Database["public"]["Enums"]["app_role"]
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          role?: Database["public"]["Enums"]["app_role"]
+          uses_count?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_roles: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"][]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "doctor" | "nurse" | "patient"
+      referral_status:
+        | "pending"
+        | "accepted"
+        | "in_progress"
+        | "completed"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +334,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "doctor", "nurse", "patient"],
+      referral_status: [
+        "pending",
+        "accepted",
+        "in_progress",
+        "completed",
+        "rejected",
+      ],
+    },
   },
 } as const
