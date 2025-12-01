@@ -281,6 +281,30 @@ const AdminDashboard = () => {
           >
             <Shield size={20} /> Security & Audit
           </Button>
+          
+          <div className="my-4 border-t border-primary-foreground/20" />
+          
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 mb-2"
+            onClick={() => navigate("/reports")}
+          >
+            <FileText size={20} /> Reports
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 mb-2"
+            onClick={() => navigate("/faq")}
+          >
+            <FileText size={20} /> FAQ
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 mb-2"
+            onClick={() => navigate("/feedback")}
+          >
+            <Bell size={20} /> Feedback
+          </Button>
         </nav>
 
         <div className="p-4 border-t border-primary-foreground/20">

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Home } from "lucide-react";
+import { LogOut, Home, FileText, MessageSquare } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -42,6 +42,18 @@ const DashboardLayout = ({ children, title, role }: DashboardLayoutProps) => {
             <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
               <Home className="h-4 w-4 mr-2" />
               Home
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/reports")}>
+              <FileText className="h-4 w-4 mr-2" />
+              Reports
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/faq")}>
+              <FileText className="h-4 w-4 mr-2" />
+              FAQ
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/feedback")}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Feedback
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
