@@ -12,8 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Heart, Users, ClipboardList, TrendingUp, Bell, Search, Settings, LogOut, 
   CheckCircle, Clock, X, AlertTriangle, Shield, FileText, Building2, 
-  UserCircle, Ban, UserCheck, UserX, MoreVertical, Code, Activity 
+  UserCircle, Ban, UserCheck, UserX, MoreVertical, Code, Activity, ChevronDown 
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface UserRowProps {
   name: string;
@@ -129,6 +130,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [notifications, setNotifications] = useState(3);
+  const [usersOpen, setUsersOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalReferrals: 0,
@@ -253,13 +255,45 @@ const AdminDashboard = () => {
           >
             <UserCircle size={20} /> Providers
           </Button>
-          <Button
-            variant={activeTab === "users" ? "secondary" : "ghost"}
-            className="w-full justify-start gap-3 mb-2"
-            onClick={() => setActiveTab("users")}
-          >
-            <Users size={20} /> Users
-          </Button>
+          
+          <Collapsible open={usersOpen} onOpenChange={setUsersOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant={activeTab.startsWith("users") ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-2"
+              >
+                <Users size={20} /> 
+                <span className="flex-1 text-left">Users</span>
+                <ChevronDown 
+                  size={16} 
+                  className={`transition-transform ${usersOpen ? "rotate-180" : ""}`} 
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-8 space-y-1">
+              <Button
+                variant={activeTab === "users-doctors" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("users-doctors")}
+              >
+                Doctors
+              </Button>
+              <Button
+                variant={activeTab === "users-nurses" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("users-nurses")}
+              >
+                Nurses
+              </Button>
+              <Button
+                variant={activeTab === "users-patients" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("users-patients")}
+              >
+                Patients
+              </Button>
+            </CollapsibleContent>
+          </Collapsible>
           <Button
             variant={activeTab === "codes" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 mb-2"
@@ -571,17 +605,25 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {activeTab === "users" && (
+          {(activeTab === "users-doctors" || activeTab === "users-nurses" || activeTab === "users-patients") && (
             <>
-              <h1 className="text-3xl font-bold mb-6">User Management</h1>
+              <h1 className="text-3xl font-bold mb-6">
+                {activeTab === "users-doctors" && "Doctor Management"}
+                {activeTab === "users-nurses" && "Nurse Management"}
+                {activeTab === "users-patients" && "Patient Management"}
+              </h1>
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Total Users</p>
-                        <p className="text-3xl font-bold">458</p>
+                        <p className="text-sm text-muted-foreground">
+                          Total {activeTab === "users-doctors" ? "Doctors" : activeTab === "users-nurses" ? "Nurses" : "Patients"}
+                        </p>
+                        <p className="text-3xl font-bold">
+                          {activeTab === "users-doctors" ? "124" : activeTab === "users-nurses" ? "89" : "245"}
+                        </p>
                       </div>
                       <Users className="h-8 w-8 text-primary" />
                     </div>
@@ -591,8 +633,10 @@ const AdminDashboard = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Active Users</p>
-                        <p className="text-3xl font-bold text-success">412</p>
+                        <p className="text-sm text-muted-foreground">Active</p>
+                        <p className="text-3xl font-bold text-success">
+                          {activeTab === "users-doctors" ? "118" : activeTab === "users-nurses" ? "82" : "230"}
+                        </p>
                       </div>
                       <CheckCircle className="h-8 w-8 text-success" />
                     </div>
@@ -603,7 +647,9 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Suspended</p>
-                        <p className="text-3xl font-bold text-warning">31</p>
+                        <p className="text-3xl font-bold text-warning">
+                          {activeTab === "users-doctors" ? "4" : activeTab === "users-nurses" ? "5" : "10"}
+                        </p>
                       </div>
                       <AlertTriangle className="h-8 w-8 text-warning" />
                     </div>
@@ -614,7 +660,9 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Deactivated</p>
-                        <p className="text-3xl font-bold text-destructive">15</p>
+                        <p className="text-3xl font-bold text-destructive">
+                          {activeTab === "users-doctors" ? "2" : activeTab === "users-nurses" ? "2" : "5"}
+                        </p>
                       </div>
                       <X className="h-8 w-8 text-destructive" />
                     </div>
@@ -625,7 +673,11 @@ const AdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>All Users</CardTitle>
+                    <CardTitle>
+                      {activeTab === "users-doctors" && "All Doctors"}
+                      {activeTab === "users-nurses" && "All Nurses"}
+                      {activeTab === "users-patients" && "All Patients"}
+                    </CardTitle>
                     <div className="flex gap-3">
                       <Input placeholder="Search users..." className="w-64" />
                       <Select>
@@ -656,22 +708,66 @@ const AdminDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        <UserRow
-                          name="Dr. Jane Kamau"
-                          email="jane.kamau@nairobi.hospital"
-                          role="Doctor"
-                          facility="Nairobi Hospital"
-                          status="Active"
-                          lastActive="2 hours ago"
-                        />
-                        <UserRow
-                          name="Nurse Sarah Wanjiru"
-                          email="s.wanjiru@agakhan.com"
-                          role="Nurse"
-                          facility="Aga Khan Hospital"
-                          status="Suspended"
-                          lastActive="5 days ago"
-                        />
+                        {activeTab === "users-doctors" && (
+                          <>
+                            <UserRow
+                              name="Dr. Jane Kamau"
+                              email="jane.kamau@nairobi.hospital"
+                              role="Doctor"
+                              facility="Nairobi Hospital"
+                              status="Active"
+                              lastActive="2 hours ago"
+                            />
+                            <UserRow
+                              name="Dr. John Mwangi"
+                              email="j.mwangi@kenyatta.hospital"
+                              role="Doctor"
+                              facility="Kenyatta Hospital"
+                              status="Active"
+                              lastActive="1 day ago"
+                            />
+                          </>
+                        )}
+                        {activeTab === "users-nurses" && (
+                          <>
+                            <UserRow
+                              name="Nurse Sarah Wanjiru"
+                              email="s.wanjiru@agakhan.com"
+                              role="Nurse"
+                              facility="Aga Khan Hospital"
+                              status="Suspended"
+                              lastActive="5 days ago"
+                            />
+                            <UserRow
+                              name="Nurse Mary Otieno"
+                              email="m.otieno@mater.hospital"
+                              role="Nurse"
+                              facility="Mater Hospital"
+                              status="Active"
+                              lastActive="3 hours ago"
+                            />
+                          </>
+                        )}
+                        {activeTab === "users-patients" && (
+                          <>
+                            <UserRow
+                              name="Peter Ochieng"
+                              email="p.ochieng@gmail.com"
+                              role="Patient"
+                              facility="Nairobi Hospital"
+                              status="Active"
+                              lastActive="1 hour ago"
+                            />
+                            <UserRow
+                              name="Grace Njeri"
+                              email="g.njeri@yahoo.com"
+                              role="Patient"
+                              facility="Kenyatta Hospital"
+                              status="Active"
+                              lastActive="4 days ago"
+                            />
+                          </>
+                        )}
                       </tbody>
                     </table>
                   </div>
