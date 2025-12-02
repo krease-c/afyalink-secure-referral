@@ -131,6 +131,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [notifications, setNotifications] = useState(3);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [facilitiesOpen, setFacilitiesOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalReferrals: 0,
@@ -241,13 +242,72 @@ const AdminDashboard = () => {
           >
             <ClipboardList size={20} /> Referrals
           </Button>
-          <Button
-            variant={activeTab === "facilities" ? "secondary" : "ghost"}
-            className="w-full justify-start gap-3 mb-2"
-            onClick={() => setActiveTab("facilities")}
-          >
-            <Building2 size={20} /> Facilities
-          </Button>
+          <Collapsible open={facilitiesOpen} onOpenChange={setFacilitiesOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant={activeTab.startsWith("facilities") ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-2"
+              >
+                <Building2 size={20} /> 
+                <span className="flex-1 text-left">Facilities</span>
+                <ChevronDown 
+                  size={16} 
+                  className={`transition-transform ${facilitiesOpen ? "rotate-180" : ""}`} 
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-8 space-y-1">
+              <Button
+                variant={activeTab === "facilities-all" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("facilities-all")}
+              >
+                All Facilities
+              </Button>
+              <Button
+                variant={activeTab === "facilities-level-6" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("facilities-level-6")}
+              >
+                Level 6 - National
+              </Button>
+              <Button
+                variant={activeTab === "facilities-level-5" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("facilities-level-5")}
+              >
+                Level 5 - County
+              </Button>
+              <Button
+                variant={activeTab === "facilities-level-4" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("facilities-level-4")}
+              >
+                Level 4 - Sub-County
+              </Button>
+              <Button
+                variant={activeTab === "facilities-level-3" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("facilities-level-3")}
+              >
+                Level 3 - Health Centre
+              </Button>
+              <Button
+                variant={activeTab === "facilities-level-2" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("facilities-level-2")}
+              >
+                Level 2 - Dispensary
+              </Button>
+              <Button
+                variant={activeTab === "facilities-level-1" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("facilities-level-1")}
+              >
+                Level 1 - Community
+              </Button>
+            </CollapsibleContent>
+          </Collapsible>
           <Button
             variant={activeTab === "providers" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 mb-2"
@@ -291,6 +351,20 @@ const AdminDashboard = () => {
                 onClick={() => setActiveTab("users-patients")}
               >
                 Patients
+              </Button>
+              <Button
+                variant={activeTab === "users-pharmacists" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("users-pharmacists")}
+              >
+                Pharmacists
+              </Button>
+              <Button
+                variant={activeTab === "users-lab-technicians" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 mb-1 text-sm"
+                onClick={() => setActiveTab("users-lab-technicians")}
+              >
+                Lab Technicians
               </Button>
             </CollapsibleContent>
           </Collapsible>
