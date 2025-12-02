@@ -388,7 +388,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "doctor" | "nurse" | "patient" | "pharmacist"
+      app_role:
+        | "admin"
+        | "doctor"
+        | "nurse"
+        | "patient"
+        | "pharmacist"
+        | "lab_technician"
       referral_status:
         | "pending"
         | "accepted"
@@ -522,7 +528,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "doctor", "nurse", "patient", "pharmacist"],
+      app_role: [
+        "admin",
+        "doctor",
+        "nurse",
+        "patient",
+        "pharmacist",
+        "lab_technician",
+      ],
       referral_status: [
         "pending",
         "accepted",

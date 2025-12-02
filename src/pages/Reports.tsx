@@ -180,10 +180,10 @@ const Reports = () => {
           <CardContent className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate">Start Date & Time</Label>
                 <Input
                   id="startDate"
-                  type="date"
+                  type="datetime-local"
                   value={filters.startDate}
                   onChange={(e) =>
                     setFilters({ ...filters, startDate: e.target.value })
@@ -192,10 +192,10 @@ const Reports = () => {
               </div>
 
               <div>
-                <Label htmlFor="endDate">End Date</Label>
+                <Label htmlFor="endDate">End Date & Time</Label>
                 <Input
                   id="endDate"
-                  type="date"
+                  type="datetime-local"
                   value={filters.endDate}
                   onChange={(e) =>
                     setFilters({ ...filters, endDate: e.target.value })

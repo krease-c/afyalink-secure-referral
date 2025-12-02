@@ -9,9 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least one special character");
+
 const authSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordSchema,
   fullName: z.string().min(2, "Full name must be at least 2 characters").optional(),
   registrationCode: z.string().min(4, "Registration code is required").optional(),
 });
@@ -201,6 +208,9 @@ const Auth = () => {
                     onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Must be at least 8 characters with uppercase, lowercase, number, and special character
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-code">Registration Code</Label>
