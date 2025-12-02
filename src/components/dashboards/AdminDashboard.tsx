@@ -139,10 +139,20 @@ const AdminDashboard = () => {
     pendingReferrals: 0,
   });
   const [newCode, setNewCode] = useState({ code: "", role: "patient" });
+  const [dbFacilities, setDbFacilities] = useState<any[]>([]);
+  const [facilityLevels, setFacilityLevels] = useState<any[]>([]);
+  const [loadingFacilities, setLoadingFacilities] = useState(false);
 
   useEffect(() => {
     fetchStats();
+    fetchFacilityLevels();
   }, []);
+
+  useEffect(() => {
+    if (activeTab.startsWith("facilities")) {
+      fetchFacilitiesByLevel();
+    }
+  }, [activeTab]);
 
   const fetchStats = async () => {
     try {
@@ -161,6 +171,55 @@ const AdminDashboard = () => {
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
+    }
+  };
+
+  const fetchFacilityLevels = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("facility_levels")
+        .select("*")
+        .order("level", { ascending: false });
+      
+      if (error) throw error;
+      setFacilityLevels(data || []);
+    } catch (error) {
+      console.error("Error fetching facility levels:", error);
+    }
+  };
+
+  const fetchFacilitiesByLevel = async () => {
+    setLoadingFacilities(true);
+    try {
+      let query = supabase
+        .from("facilities")
+        .select(`
+          *,
+          facility_levels (
+            id,
+            level,
+            name,
+            description
+          )
+        `)
+        .order("name");
+
+      // Filter by level if a specific level is selected
+      if (activeTab.includes("level-")) {
+        const levelNum = parseInt(activeTab.split("level-")[1]);
+        const levelData = facilityLevels.find(l => l.level === levelNum);
+        if (levelData) {
+          query = query.eq("level_id", levelData.id);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setDbFacilities(data || []);
+    } catch (error) {
+      console.error("Error fetching facilities:", error);
+    } finally {
+      setLoadingFacilities(false);
     }
   };
 
@@ -520,9 +579,17 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {activeTab === "facilities" && (
+          {activeTab.startsWith("facilities") && (
             <div>
-              <h1 className="text-3xl font-bold mb-6">Facility Management</h1>
+              <h1 className="text-3xl font-bold mb-6">
+                {activeTab === "facilities-all" && "All Facilities"}
+                {activeTab === "facilities-level-6" && "Level 6 - National Referral Hospitals"}
+                {activeTab === "facilities-level-5" && "Level 5 - County Referral Hospitals"}
+                {activeTab === "facilities-level-4" && "Level 4 - Sub-County Hospitals"}
+                {activeTab === "facilities-level-3" && "Level 3 - Health Centres"}
+                {activeTab === "facilities-level-2" && "Level 2 - Dispensaries"}
+                {activeTab === "facilities-level-1" && "Level 1 - Community Units"}
+              </h1>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <Card>
@@ -530,7 +597,7 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Total Facilities</p>
-                        <p className="text-3xl font-bold">{facilities.length}</p>
+                        <p className="text-3xl font-bold">{dbFacilities.length}</p>
                       </div>
                       <Building2 className="h-8 w-8 text-primary" />
                     </div>
@@ -542,7 +609,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Active Facilities</p>
                         <p className="text-3xl font-bold text-success">
-                          {facilities.filter(f => f.status === "Active").length}
+                          {dbFacilities.filter(f => f.status === "active").length}
                         </p>
                       </div>
                       <CheckCircle className="h-8 w-8 text-success" />
@@ -554,7 +621,11 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Avg Rating</p>
-                        <p className="text-3xl font-bold">4.7</p>
+                        <p className="text-3xl font-bold">
+                          {dbFacilities.length > 0 
+                            ? (dbFacilities.reduce((acc, f) => acc + (f.rating || 0), 0) / dbFacilities.length).toFixed(1)
+                            : "N/A"}
+                        </p>
                       </div>
                       <TrendingUp className="h-8 w-8 text-primary" />
                     </div>
@@ -564,32 +635,50 @@ const AdminDashboard = () => {
 
               <Card>
                 <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {facilities.map((facility, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <Building2 className="text-primary" size={24} />
+                  {loadingFacilities ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : dbFacilities.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No facilities found for this level</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {dbFacilities.map((facility) => (
+                        <div key={facility.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                              <Building2 className="text-primary" size={24} />
+                            </div>
+                            <div>
+                              <p className="font-semibold">{facility.name}</p>
+                              <p className="text-sm text-muted-foreground">{facility.type}</p>
+                              <p className="text-xs text-muted-foreground">{facility.address}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold">{facility.name}</p>
-                            <p className="text-sm text-muted-foreground">{facility.type}</p>
+                          <div className="flex items-center gap-8">
+                            <div className="text-right">
+                              <Badge variant="outline">
+                                Level {facility.facility_levels?.level || "N/A"}
+                              </Badge>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {facility.facility_levels?.name || "Unknown"}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-semibold">{facility.rating || 0}</p>
+                              <p className="text-sm text-muted-foreground">Rating</p>
+                            </div>
+                            <Badge className={facility.status === "active" ? "bg-success" : "bg-muted"}>
+                              {facility.status}
+                            </Badge>
                           </div>
                         </div>
-                        <div className="flex items-center gap-8">
-                          <div className="text-right">
-                            <p className="text-2xl font-bold">{facility.referrals}</p>
-                            <p className="text-sm text-muted-foreground">Referrals</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold">{facility.rating}</p>
-                            <p className="text-sm text-muted-foreground">Rating</p>
-                          </div>
-                          <Badge className="bg-success">{facility.status}</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
