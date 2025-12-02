@@ -260,11 +260,25 @@ const AdminDashboard = () => {
     }
   };
 
+  // Consistent mock data counts across the dashboard
+  const mockCounts = {
+    doctors: { total: 45, active: 42, suspended: 2, deactivated: 1 },
+    nurses: { total: 32, active: 28, suspended: 3, deactivated: 1 },
+    patients: { total: 156, active: 148, suspended: 5, deactivated: 3 },
+    pharmacists: { total: 18, active: 16, suspended: 1, deactivated: 1 },
+    labTechnicians: { total: 12, active: 11, suspended: 1, deactivated: 0 },
+    totalReferrals: 247,
+    pendingReferrals: 38,
+    activeFacilities: 19,
+  };
+
+  const totalProviders = mockCounts.doctors.total + mockCounts.nurses.total + mockCounts.pharmacists.total + mockCounts.labTechnicians.total;
+
   const dashboardStats = [
-    { label: "Total Referrals", value: stats.totalReferrals.toString(), icon: ClipboardList, color: "bg-primary", change: "+12%" },
-    { label: "Active Facilities", value: "89", icon: Building2, color: "bg-success", change: "+5%" },
-    { label: "Healthcare Providers", value: stats.totalUsers.toString(), icon: UserCircle, color: "bg-accent", change: "+8%" },
-    { label: "Pending Reviews", value: stats.pendingReferrals.toString(), icon: Clock, color: "bg-warning", change: "-3%" }
+    { label: "Total Referrals", value: mockCounts.totalReferrals.toString(), icon: ClipboardList, color: "bg-primary", change: "+12%" },
+    { label: "Active Facilities", value: mockCounts.activeFacilities.toString(), icon: Building2, color: "bg-success", change: "+5%" },
+    { label: "Healthcare Providers", value: totalProviders.toString(), icon: UserCircle, color: "bg-accent", change: "+8%" },
+    { label: "Pending Reviews", value: mockCounts.pendingReferrals.toString(), icon: Clock, color: "bg-warning", change: "-3%" }
   ];
 
   const facilities = [
@@ -688,23 +702,72 @@ const AdminDashboard = () => {
             <div>
               <h1 className="text-3xl font-bold mb-6">Healthcare Providers</h1>
               
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Doctors</p>
+                        <p className="text-3xl font-bold">{mockCounts.doctors.total}</p>
+                      </div>
+                      <UserCircle className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Nurses</p>
+                        <p className="text-3xl font-bold">{mockCounts.nurses.total}</p>
+                      </div>
+                      <UserCircle className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Pharmacists</p>
+                        <p className="text-3xl font-bold">{mockCounts.pharmacists.total}</p>
+                      </div>
+                      <UserCircle className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Lab Technicians</p>
+                        <p className="text-3xl font-bold">{mockCounts.labTechnicians.total}</p>
+                      </div>
+                      <UserCircle className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
               <Tabs defaultValue="doctors" className="space-y-6">
                 <TabsList>
                   <TabsTrigger value="doctors">Doctors</TabsTrigger>
                   <TabsTrigger value="nurses">Nurses</TabsTrigger>
+                  <TabsTrigger value="pharmacists">Pharmacists</TabsTrigger>
+                  <TabsTrigger value="lab-technicians">Lab Technicians</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="doctors">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Registered Doctors</CardTitle>
+                      <CardTitle>Registered Doctors ({mockCounts.doctors.total})</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
                         {[
-                          { name: "Dr. Jane Kamau", specialty: "Cardiology", facility: "Nairobi Hospital", patients: 45 },
-                          { name: "Dr. Michael Ochieng", specialty: "Neurology", facility: "Kenyatta Hospital", patients: 38 },
-                          { name: "Dr. Grace Njeri", specialty: "Pediatrics", facility: "Aga Khan Hospital", patients: 52 },
+                          { name: "Dr. Jane Kamau", specialty: "Cardiology", facility: "Kenyatta National Hospital", patients: 52 },
+                          { name: "Dr. John Mwangi", specialty: "Neurology", facility: "Nairobi Hospital", patients: 38 },
+                          { name: "Dr. Grace Njeri", specialty: "Pediatrics", facility: "Moi Teaching and Referral Hospital", patients: 45 },
                         ].map((doctor, i) => (
                           <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                             <div className="flex items-center gap-3">
@@ -733,13 +796,14 @@ const AdminDashboard = () => {
                 <TabsContent value="nurses">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Registered Nurses</CardTitle>
+                      <CardTitle>Registered Nurses ({mockCounts.nurses.total})</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
                         {[
-                          { name: "Nurse Sarah Wanjiru", department: "Emergency", facility: "Mater Hospital", assigned: 12 },
-                          { name: "Nurse David Kipchoge", department: "ICU", facility: "Nairobi Hospital", assigned: 8 },
+                          { name: "Nurse Sarah Wanjiru", department: "Emergency", facility: "Coast General Hospital", assigned: 12 },
+                          { name: "Nurse David Kipchoge", department: "ICU", facility: "Nakuru Level 5 Hospital", assigned: 8 },
+                          { name: "Nurse Mary Otieno", department: "Maternity", facility: "Embu Level 5 Hospital", assigned: 10 },
                         ].map((nurse, i) => (
                           <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                             <div className="flex items-center gap-3">
@@ -764,16 +828,90 @@ const AdminDashboard = () => {
                     </CardContent>
                   </Card>
                 </TabsContent>
+
+                <TabsContent value="pharmacists">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Registered Pharmacists ({mockCounts.pharmacists.total})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {[
+                          { name: "Pharm. Michael Ouma", department: "Main Pharmacy", facility: "Kenyatta National Hospital", prescriptions: 156 },
+                          { name: "Pharm. Lucy Muthoni", department: "Outpatient Pharmacy", facility: "Nairobi Hospital", prescriptions: 98 },
+                          { name: "Pharm. Joseph Kariuki", department: "Emergency Pharmacy", facility: "Coast General Hospital", prescriptions: 87 },
+                        ].map((pharmacist, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <UserCircle className="text-primary" size={24} />
+                              </div>
+                              <div>
+                                <p className="font-semibold">{pharmacist.name}</p>
+                                <p className="text-sm text-muted-foreground">{pharmacist.department}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                              <div className="text-right">
+                                <p className="font-semibold">{pharmacist.facility}</p>
+                                <p className="text-sm text-muted-foreground">{pharmacist.prescriptions} prescriptions</p>
+                              </div>
+                              <Badge>Active</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="lab-technicians">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Registered Lab Technicians ({mockCounts.labTechnicians.total})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {[
+                          { name: "Lab Tech. Susan Achieng", department: "Hematology", facility: "Kenyatta National Hospital", tests: 247 },
+                          { name: "Lab Tech. Brian Kimani", department: "Microbiology", facility: "Moi Teaching and Referral Hospital", tests: 189 },
+                          { name: "Lab Tech. Faith Njoki", department: "Biochemistry", facility: "Embu Level 5 Hospital", tests: 156 },
+                        ].map((labTech, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <UserCircle className="text-primary" size={24} />
+                              </div>
+                              <div>
+                                <p className="font-semibold">{labTech.name}</p>
+                                <p className="text-sm text-muted-foreground">{labTech.department}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                              <div className="text-right">
+                                <p className="font-semibold">{labTech.facility}</p>
+                                <p className="text-sm text-muted-foreground">{labTech.tests} tests</p>
+                              </div>
+                              <Badge>Active</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
               </Tabs>
             </div>
           )}
 
-          {(activeTab === "users-doctors" || activeTab === "users-nurses" || activeTab === "users-patients") && (
+          {(activeTab === "users-doctors" || activeTab === "users-nurses" || activeTab === "users-patients" || activeTab === "users-pharmacists" || activeTab === "users-lab-technicians") && (
             <>
               <h1 className="text-3xl font-bold mb-6">
                 {activeTab === "users-doctors" && "Doctor Management"}
                 {activeTab === "users-nurses" && "Nurse Management"}
                 {activeTab === "users-patients" && "Patient Management"}
+                {activeTab === "users-pharmacists" && "Pharmacist Management"}
+                {activeTab === "users-lab-technicians" && "Lab Technician Management"}
               </h1>
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -782,10 +920,14 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">
-                          Total {activeTab === "users-doctors" ? "Doctors" : activeTab === "users-nurses" ? "Nurses" : "Patients"}
+                          Total {activeTab === "users-doctors" ? "Doctors" : activeTab === "users-nurses" ? "Nurses" : activeTab === "users-patients" ? "Patients" : activeTab === "users-pharmacists" ? "Pharmacists" : "Lab Technicians"}
                         </p>
                         <p className="text-3xl font-bold">
-                          {activeTab === "users-doctors" ? "124" : activeTab === "users-nurses" ? "89" : "245"}
+                          {activeTab === "users-doctors" ? mockCounts.doctors.total : 
+                           activeTab === "users-nurses" ? mockCounts.nurses.total : 
+                           activeTab === "users-patients" ? mockCounts.patients.total : 
+                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.total : 
+                           mockCounts.labTechnicians.total}
                         </p>
                       </div>
                       <Users className="h-8 w-8 text-primary" />
@@ -798,7 +940,11 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Active</p>
                         <p className="text-3xl font-bold text-success">
-                          {activeTab === "users-doctors" ? "118" : activeTab === "users-nurses" ? "82" : "230"}
+                          {activeTab === "users-doctors" ? mockCounts.doctors.active : 
+                           activeTab === "users-nurses" ? mockCounts.nurses.active : 
+                           activeTab === "users-patients" ? mockCounts.patients.active : 
+                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.active : 
+                           mockCounts.labTechnicians.active}
                         </p>
                       </div>
                       <CheckCircle className="h-8 w-8 text-success" />
@@ -811,7 +957,11 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Suspended</p>
                         <p className="text-3xl font-bold text-warning">
-                          {activeTab === "users-doctors" ? "4" : activeTab === "users-nurses" ? "5" : "10"}
+                          {activeTab === "users-doctors" ? mockCounts.doctors.suspended : 
+                           activeTab === "users-nurses" ? mockCounts.nurses.suspended : 
+                           activeTab === "users-patients" ? mockCounts.patients.suspended : 
+                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.suspended : 
+                           mockCounts.labTechnicians.suspended}
                         </p>
                       </div>
                       <AlertTriangle className="h-8 w-8 text-warning" />
@@ -824,7 +974,11 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Deactivated</p>
                         <p className="text-3xl font-bold text-destructive">
-                          {activeTab === "users-doctors" ? "2" : activeTab === "users-nurses" ? "2" : "5"}
+                          {activeTab === "users-doctors" ? mockCounts.doctors.deactivated : 
+                           activeTab === "users-nurses" ? mockCounts.nurses.deactivated : 
+                           activeTab === "users-patients" ? mockCounts.patients.deactivated : 
+                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.deactivated : 
+                           mockCounts.labTechnicians.deactivated}
                         </p>
                       </div>
                       <X className="h-8 w-8 text-destructive" />
@@ -840,6 +994,8 @@ const AdminDashboard = () => {
                       {activeTab === "users-doctors" && "All Doctors"}
                       {activeTab === "users-nurses" && "All Nurses"}
                       {activeTab === "users-patients" && "All Patients"}
+                      {activeTab === "users-pharmacists" && "All Pharmacists"}
+                      {activeTab === "users-lab-technicians" && "All Lab Technicians"}
                     </CardTitle>
                     <div className="flex gap-3">
                       <Input placeholder="Search users..." className="w-64" />
@@ -875,19 +1031,27 @@ const AdminDashboard = () => {
                           <>
                             <UserRow
                               name="Dr. Jane Kamau"
-                              email="jane.kamau@nairobi.hospital"
+                              email="jane.kamau@kenyatta.hospital"
                               role="Doctor"
-                              facility="Nairobi Hospital"
+                              facility="Kenyatta National Hospital"
                               status="Active"
                               lastActive="2 hours ago"
                             />
                             <UserRow
                               name="Dr. John Mwangi"
-                              email="j.mwangi@kenyatta.hospital"
+                              email="j.mwangi@nairobi.hospital"
                               role="Doctor"
-                              facility="Kenyatta Hospital"
+                              facility="Nairobi Hospital"
                               status="Active"
                               lastActive="1 day ago"
+                            />
+                            <UserRow
+                              name="Dr. Grace Njeri"
+                              email="g.njeri@moi.hospital"
+                              role="Doctor"
+                              facility="Moi Teaching and Referral Hospital"
+                              status="Active"
+                              lastActive="3 hours ago"
                             />
                           </>
                         )}
@@ -895,19 +1059,27 @@ const AdminDashboard = () => {
                           <>
                             <UserRow
                               name="Nurse Sarah Wanjiru"
-                              email="s.wanjiru@agakhan.com"
+                              email="s.wanjiru@coast.hospital"
                               role="Nurse"
-                              facility="Aga Khan Hospital"
-                              status="Suspended"
-                              lastActive="5 days ago"
+                              facility="Coast General Hospital"
+                              status="Active"
+                              lastActive="5 hours ago"
                             />
                             <UserRow
                               name="Nurse Mary Otieno"
-                              email="m.otieno@mater.hospital"
+                              email="m.otieno@embu.hospital"
                               role="Nurse"
-                              facility="Mater Hospital"
+                              facility="Embu Level 5 Hospital"
                               status="Active"
                               lastActive="3 hours ago"
+                            />
+                            <UserRow
+                              name="Nurse David Kipchoge"
+                              email="d.kipchoge@nakuru.hospital"
+                              role="Nurse"
+                              facility="Nakuru Level 5 Hospital"
+                              status="Suspended"
+                              lastActive="2 days ago"
                             />
                           </>
                         )}
@@ -917,17 +1089,81 @@ const AdminDashboard = () => {
                               name="Peter Ochieng"
                               email="p.ochieng@gmail.com"
                               role="Patient"
-                              facility="Nairobi Hospital"
+                              facility="Mama Lucy Kibaki Hospital"
                               status="Active"
                               lastActive="1 hour ago"
                             />
                             <UserRow
-                              name="Grace Njeri"
-                              email="g.njeri@yahoo.com"
+                              name="Alice Wambui"
+                              email="a.wambui@yahoo.com"
                               role="Patient"
-                              facility="Kenyatta Hospital"
+                              facility="St. Mary's Mission Hospital"
                               status="Active"
-                              lastActive="4 days ago"
+                              lastActive="4 hours ago"
+                            />
+                            <UserRow
+                              name="James Kiprotich"
+                              email="j.kiprotich@gmail.com"
+                              role="Patient"
+                              facility="Narok County Referral Hospital"
+                              status="Active"
+                              lastActive="1 day ago"
+                            />
+                          </>
+                        )}
+                        {activeTab === "users-pharmacists" && (
+                          <>
+                            <UserRow
+                              name="Pharm. Michael Ouma"
+                              email="m.ouma@kenyatta.pharmacy"
+                              role="Pharmacist"
+                              facility="Kenyatta National Hospital"
+                              status="Active"
+                              lastActive="1 hour ago"
+                            />
+                            <UserRow
+                              name="Pharm. Lucy Muthoni"
+                              email="l.muthoni@nairobi.pharmacy"
+                              role="Pharmacist"
+                              facility="Nairobi Hospital"
+                              status="Active"
+                              lastActive="3 hours ago"
+                            />
+                            <UserRow
+                              name="Pharm. Joseph Kariuki"
+                              email="j.kariuki@coast.pharmacy"
+                              role="Pharmacist"
+                              facility="Coast General Hospital"
+                              status="Suspended"
+                              lastActive="5 days ago"
+                            />
+                          </>
+                        )}
+                        {activeTab === "users-lab-technicians" && (
+                          <>
+                            <UserRow
+                              name="Lab Tech. Susan Achieng"
+                              email="s.achieng@kenyatta.lab"
+                              role="Lab Technician"
+                              facility="Kenyatta National Hospital"
+                              status="Active"
+                              lastActive="30 minutes ago"
+                            />
+                            <UserRow
+                              name="Lab Tech. Brian Kimani"
+                              email="b.kimani@moi.lab"
+                              role="Lab Technician"
+                              facility="Moi Teaching and Referral Hospital"
+                              status="Active"
+                              lastActive="2 hours ago"
+                            />
+                            <UserRow
+                              name="Lab Tech. Faith Njoki"
+                              email="f.njoki@embu.lab"
+                              role="Lab Technician"
+                              facility="Embu Level 5 Hospital"
+                              status="Active"
+                              lastActive="4 hours ago"
                             />
                           </>
                         )}
@@ -1023,6 +1259,8 @@ const AdminDashboard = () => {
                             <SelectItem value="doctor">Doctor</SelectItem>
                             <SelectItem value="nurse">Nurse</SelectItem>
                             <SelectItem value="patient">Patient</SelectItem>
+                            <SelectItem value="pharmacist">Pharmacist</SelectItem>
+                            <SelectItem value="lab_technician">Lab Technician</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
