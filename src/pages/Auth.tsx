@@ -16,11 +16,16 @@ const passwordSchema = z.string()
   .regex(/[0-9]/, "Password must contain at least one number")
   .regex(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least one special character");
 
-const authSchema = z.object({
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: passwordSchema,
-  fullName: z.string().min(2, "Full name must be at least 2 characters").optional(),
-  registrationCode: z.string().min(4, "Registration code is required").optional(),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  registrationCode: z.string().min(4, "Registration code is required"),
 });
 
 const Auth = () => {
@@ -40,7 +45,7 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const validated = authSchema.pick({ email: true, password: true }).parse(loginData);
+      const validated = loginSchema.parse(loginData);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: validated.email,
@@ -77,11 +82,7 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const validated = authSchema.parse({
-        ...signupData,
-        fullName: signupData.fullName,
-        registrationCode: signupData.registrationCode,
-      });
+      const validated = signupSchema.parse(signupData);
 
       const { data, error } = await supabase.auth.signUp({
         email: validated.email,
