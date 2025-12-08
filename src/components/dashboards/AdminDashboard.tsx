@@ -125,6 +125,14 @@ function UserRow({ name, email, role, facility, status, lastActive }: UserRowPro
   );
 }
 
+interface PendingUser {
+  id: string;
+  email: string;
+  full_name: string;
+  created_at: string;
+  roles: string[];
+}
+
 const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -137,15 +145,19 @@ const AdminDashboard = () => {
     totalReferrals: 0,
     totalCodes: 0,
     pendingReferrals: 0,
+    pendingUsers: 0,
   });
   const [newCode, setNewCode] = useState({ code: "", role: "patient" });
   const [dbFacilities, setDbFacilities] = useState<any[]>([]);
   const [facilityLevels, setFacilityLevels] = useState<any[]>([]);
   const [loadingFacilities, setLoadingFacilities] = useState(false);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [loadingPendingUsers, setLoadingPendingUsers] = useState(false);
 
   useEffect(() => {
     fetchStats();
     fetchFacilityLevels();
+    fetchPendingUsers();
   }, []);
 
   useEffect(() => {
@@ -154,13 +166,68 @@ const AdminDashboard = () => {
     }
   }, [activeTab]);
 
+  const fetchPendingUsers = async () => {
+    setLoadingPendingUsers(true);
+    try {
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch roles for each pending user
+      const usersWithRoles = await Promise.all(
+        (profiles || []).map(async (profile) => {
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", profile.id);
+          return {
+            ...profile,
+            roles: roles?.map(r => r.role) || []
+          };
+        })
+      );
+
+      setPendingUsers(usersWithRoles);
+    } catch (error) {
+      console.error("Error fetching pending users:", error);
+    } finally {
+      setLoadingPendingUsers(false);
+    }
+  };
+
+  const handleActivateUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({ title: "User activated successfully" });
+      fetchPendingUsers();
+      fetchStats();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const fetchStats = async () => {
     try {
-      const [profiles, referrals, codes, pending] = await Promise.all([
+      const [profiles, referrals, codes, pending, pendingProfiles] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("referrals").select("id", { count: "exact", head: true }),
         supabase.from("registration_codes").select("id", { count: "exact", head: true }),
         supabase.from("referrals").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
 
       setStats({
@@ -168,6 +235,7 @@ const AdminDashboard = () => {
         totalReferrals: referrals.count || 0,
         totalCodes: codes.count || 0,
         pendingReferrals: pending.count || 0,
+        pendingUsers: pendingProfiles.count || 0,
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -441,6 +509,17 @@ const AdminDashboard = () => {
               </Button>
             </CollapsibleContent>
           </Collapsible>
+          <Button
+            variant={activeTab === "pending-users" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 mb-2"
+            onClick={() => setActiveTab("pending-users")}
+          >
+            <Clock size={20} /> 
+            <span className="flex-1 text-left">Pending Users</span>
+            {stats.pendingUsers > 0 && (
+              <Badge className="bg-warning text-warning-foreground">{stats.pendingUsers}</Badge>
+            )}
+          </Button>
           <Button
             variant={activeTab === "codes" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 mb-2"
@@ -1170,6 +1249,84 @@ const AdminDashboard = () => {
                       </tbody>
                     </table>
                   </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "pending-users" && (
+            <>
+              <h1 className="text-3xl font-bold mb-6">Pending User Approvals</h1>
+              
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Users Awaiting Approval</p>
+                      <p className="text-3xl font-bold text-warning">{pendingUsers.length}</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-warning" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>New User Registrations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingPendingUsers ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : pendingUsers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4 text-success opacity-50" />
+                      <p>No pending user approvals</p>
+                      <p className="text-sm">All registered users have been reviewed</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {pendingUsers.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-warning/20">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-warning/10 rounded-full flex items-center justify-center">
+                              <Clock className="text-warning" size={24} />
+                            </div>
+                            <div>
+                              <p className="font-semibold">{user.full_name}</p>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {user.roles.length > 0 ? (
+                                  user.roles.map((role, i) => (
+                                    <Badge key={i} variant="outline" className="capitalize">
+                                      {role.replace('_', ' ')}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <Badge variant="destructive" className="text-xs">No role assigned</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right text-sm text-muted-foreground">
+                              <p>Registered</p>
+                              <p>{new Date(user.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <Button
+                              onClick={() => handleActivateUser(user.id)}
+                              className="gap-2"
+                              disabled={user.roles.length === 0}
+                            >
+                              <UserCheck size={18} />
+                              Activate
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </>
