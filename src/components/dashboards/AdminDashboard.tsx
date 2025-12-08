@@ -521,13 +521,6 @@ const AdminDashboard = () => {
             )}
           </Button>
           <Button
-            variant={activeTab === "codes" ? "secondary" : "ghost"}
-            className="w-full justify-start gap-3 mb-2"
-            onClick={() => setActiveTab("codes")}
-          >
-            <Code size={20} /> Registration Codes
-          </Button>
-          <Button
             variant={activeTab === "analytics" ? "secondary" : "ghost"}
             className="w-full justify-start gap-3 mb-2"
             onClick={() => setActiveTab("analytics")}
@@ -1297,14 +1290,12 @@ const AdminDashboard = () => {
                               <p className="font-semibold">{user.full_name}</p>
                               <p className="text-sm text-muted-foreground">{user.email}</p>
                               <div className="flex items-center gap-2 mt-1">
-                                {user.roles.length > 0 ? (
+                                {user.roles.length > 0 && (
                                   user.roles.map((role, i) => (
                                     <Badge key={i} variant="outline" className="capitalize">
                                       {role.replace('_', ' ')}
                                     </Badge>
                                   ))
-                                ) : (
-                                  <Badge variant="destructive" className="text-xs">No role assigned</Badge>
                                 )}
                               </div>
                             </div>
@@ -1317,7 +1308,6 @@ const AdminDashboard = () => {
                             <Button
                               onClick={() => handleActivateUser(user.id)}
                               className="gap-2"
-                              disabled={user.roles.length === 0}
                             >
                               <UserCheck size={18} />
                               Activate
