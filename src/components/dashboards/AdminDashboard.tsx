@@ -464,7 +464,7 @@ const AdminDashboard = () => {
                 className="w-full justify-start gap-3 mb-2"
               >
                 <Users size={20} /> 
-                <span className="flex-1 text-left">Users</span>
+                <span className="flex-1 text-left">Healthcare Providers</span>
                 <ChevronDown 
                   size={16} 
                   className={`transition-transform ${usersOpen ? "rotate-180" : ""}`} 
