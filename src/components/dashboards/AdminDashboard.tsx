@@ -155,6 +155,8 @@ const AdminDashboard = () => {
   const [loadingPendingUsers, setLoadingPendingUsers] = useState(false);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(false);
+  const [activatingUsers, setActivatingUsers] = useState<Set<string>>(new Set());
+  const [activatedUsers, setActivatedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchStats();
@@ -220,6 +222,7 @@ const AdminDashboard = () => {
   };
 
   const handleActivateUser = async (userId: string) => {
+    setActivatingUsers(prev => new Set(prev).add(userId));
     try {
       const { error } = await supabase
         .from("profiles")
@@ -228,10 +231,35 @@ const AdminDashboard = () => {
 
       if (error) throw error;
 
-      toast({ title: "User activated successfully" });
-      fetchPendingUsers();
-      fetchStats();
+      // Show activated status
+      setActivatingUsers(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+      setActivatedUsers(prev => new Set(prev).add(userId));
+      
+      toast({ 
+        title: "User Activated", 
+        description: "The user can now log in to the system."
+      });
+      
+      // Remove from list after showing "Activated" for 2 seconds
+      setTimeout(() => {
+        setActivatedUsers(prev => {
+          const next = new Set(prev);
+          next.delete(userId);
+          return next;
+        });
+        fetchPendingUsers();
+        fetchStats();
+      }, 2000);
     } catch (error: any) {
+      setActivatingUsers(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
       toast({
         title: "Error",
         description: error.message,
@@ -1331,10 +1359,22 @@ const AdminDashboard = () => {
                   ) : (
                     <div className="space-y-4">
                       {pendingUsers.map((user) => (
-                        <div key={user.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-warning/20">
+                          <div className={`flex items-center justify-between p-4 rounded-lg border ${
+                            activatedUsers.has(user.id) 
+                              ? 'bg-success/10 border-success/30' 
+                              : 'bg-muted/30 border-warning/20'
+                          }`}>
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-warning/10 rounded-full flex items-center justify-center">
-                              <Clock className="text-warning" size={24} />
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              activatedUsers.has(user.id) 
+                                ? 'bg-success/20' 
+                                : 'bg-warning/10'
+                            }`}>
+                              {activatedUsers.has(user.id) ? (
+                                <CheckCircle className="text-success" size={24} />
+                              ) : (
+                                <Clock className="text-warning" size={24} />
+                              )}
                             </div>
                             <div>
                               <p className="font-semibold">{user.full_name}</p>
@@ -1355,13 +1395,30 @@ const AdminDashboard = () => {
                               <p>Registered</p>
                               <p>{new Date(user.created_at).toLocaleDateString()}</p>
                             </div>
-                            <Button
-                              onClick={() => handleActivateUser(user.id)}
-                              className="gap-2"
-                            >
-                              <UserCheck size={18} />
-                              Activate
-                            </Button>
+                            {activatedUsers.has(user.id) ? (
+                              <Badge className="bg-success text-success-foreground gap-1 py-2 px-4">
+                                <CheckCircle size={16} />
+                                Activated
+                              </Badge>
+                            ) : (
+                              <Button
+                                onClick={() => handleActivateUser(user.id)}
+                                className="gap-2"
+                                disabled={activatingUsers.has(user.id)}
+                              >
+                                {activatingUsers.has(user.id) ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                                    Activating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck size={18} />
+                                    Activate
+                                  </>
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
