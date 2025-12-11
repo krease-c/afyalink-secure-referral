@@ -133,6 +133,14 @@ interface PendingUser {
   roles: string[];
 }
 
+interface HealthcareProvider {
+  id: string;
+  full_name: string;
+  email: string;
+  status: string;
+  role: string;
+}
+
 const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -159,12 +167,15 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
   const [activatedUsers, setActivatedUsers] = useState<Set<string>>(new Set());
+  const [healthcareProviders, setHealthcareProviders] = useState<HealthcareProvider[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
 
   useEffect(() => {
     fetchStats();
     fetchFacilityLevels();
     fetchPendingUsers();
     fetchReferrals();
+    fetchHealthcareProviders();
   }, []);
 
   useEffect(() => {
@@ -220,6 +231,48 @@ const AdminDashboard = () => {
       console.error("Error fetching referrals:", error);
     } finally {
       setLoadingReferrals(false);
+    }
+  };
+
+  const fetchHealthcareProviders = async () => {
+    setLoadingProviders(true);
+    try {
+      // Fetch all active users with their roles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, status")
+        .eq("status", "active");
+
+      if (profilesError) throw profilesError;
+
+      // Fetch roles for each user
+      const providersWithRoles: HealthcareProvider[] = [];
+      for (const profile of profiles || []) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", profile.id);
+        
+        // Add each role as a separate entry (user can have multiple roles)
+        const userRoles = roles?.map(r => r.role) || [];
+        for (const role of userRoles) {
+          if (role !== 'admin' && role !== 'patient') { // Only healthcare providers
+            providersWithRoles.push({
+              id: profile.id,
+              full_name: profile.full_name,
+              email: profile.email,
+              status: profile.status || 'active',
+              role: role,
+            });
+          }
+        }
+      }
+
+      setHealthcareProviders(providersWithRoles);
+    } catch (error) {
+      console.error("Error fetching healthcare providers:", error);
+    } finally {
+      setLoadingProviders(false);
     }
   };
 
@@ -286,6 +339,7 @@ const AdminDashboard = () => {
           return next;
         });
         fetchStats();
+        fetchHealthcareProviders(); // Refresh providers list after activation
       }, 2000);
     } catch (error: any) {
       setActivatingUsers(prev => {
@@ -409,13 +463,20 @@ const AdminDashboard = () => {
     }
   };
 
-  // Mock data counts for user role sections
-  const mockCounts = {
-    doctors: { total: 45, active: 42, suspended: 2, deactivated: 1 },
-    nurses: { total: 32, active: 28, suspended: 3, deactivated: 1 },
-    patients: { total: 156, active: 148, suspended: 5, deactivated: 3 },
-    pharmacists: { total: 18, active: 16, suspended: 1, deactivated: 1 },
-    labTechnicians: { total: 12, active: 11, suspended: 1, deactivated: 0 },
+  // Compute real counts from healthcare providers
+  const providerCounts = {
+    doctors: healthcareProviders.filter(p => p.role === 'doctor'),
+    nurses: healthcareProviders.filter(p => p.role === 'nurse'),
+    pharmacists: healthcareProviders.filter(p => p.role === 'pharmacist'),
+    labTechnicians: healthcareProviders.filter(p => p.role === 'lab_technician'),
+  };
+
+  const roleCountStats = {
+    doctors: { total: providerCounts.doctors.length, active: providerCounts.doctors.filter(p => p.status === 'active').length },
+    nurses: { total: providerCounts.nurses.length, active: providerCounts.nurses.filter(p => p.status === 'active').length },
+    patients: { total: 0, active: 0 }, // Patients are separate
+    pharmacists: { total: providerCounts.pharmacists.length, active: providerCounts.pharmacists.filter(p => p.status === 'active').length },
+    labTechnicians: { total: providerCounts.labTechnicians.length, active: providerCounts.labTechnicians.filter(p => p.status === 'active').length },
   };
 
   const dashboardStats = [
@@ -902,205 +963,197 @@ const AdminDashboard = () => {
             <div>
               <h1 className="text-3xl font-bold mb-6">Healthcare Providers</h1>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Doctors</p>
-                        <p className="text-3xl font-bold">{mockCounts.doctors.total}</p>
-                      </div>
-                      <UserCircle className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Nurses</p>
-                        <p className="text-3xl font-bold">{mockCounts.nurses.total}</p>
-                      </div>
-                      <UserCircle className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Pharmacists</p>
-                        <p className="text-3xl font-bold">{mockCounts.pharmacists.total}</p>
-                      </div>
-                      <UserCircle className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Lab Technicians</p>
-                        <p className="text-3xl font-bold">{mockCounts.labTechnicians.total}</p>
-                      </div>
-                      <UserCircle className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Tabs defaultValue="doctors" className="space-y-6">
-                <TabsList>
-                  <TabsTrigger value="doctors">Doctors</TabsTrigger>
-                  <TabsTrigger value="nurses">Nurses</TabsTrigger>
-                  <TabsTrigger value="pharmacists">Pharmacists</TabsTrigger>
-                  <TabsTrigger value="lab-technicians">Lab Technicians</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="doctors">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Registered Doctors ({mockCounts.doctors.total})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {[
-                          { name: "Dr. Jane Kamau", specialty: "Cardiology", facility: "Kenyatta National Hospital", patients: 52 },
-                          { name: "Dr. John Mwangi", specialty: "Neurology", facility: "Nairobi Hospital", patients: 38 },
-                          { name: "Dr. Grace Njeri", specialty: "Pediatrics", facility: "Moi Teaching and Referral Hospital", patients: 45 },
-                        ].map((doctor, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                <UserCircle className="text-primary" size={24} />
-                              </div>
-                              <div>
-                                <p className="font-semibold">{doctor.name}</p>
-                                <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                <p className="font-semibold">{doctor.facility}</p>
-                                <p className="text-sm text-muted-foreground">{doctor.patients} patients</p>
-                              </div>
-                              <Badge>Active</Badge>
-                            </div>
+              {loadingProviders ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Doctors</p>
+                            <p className="text-3xl font-bold">{roleCountStats.doctors.total}</p>
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="nurses">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Registered Nurses ({mockCounts.nurses.total})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {[
-                          { name: "Nurse Sarah Wanjiru", department: "Emergency", facility: "Coast General Hospital", assigned: 12 },
-                          { name: "Nurse David Kipchoge", department: "ICU", facility: "Nakuru Level 5 Hospital", assigned: 8 },
-                          { name: "Nurse Mary Otieno", department: "Maternity", facility: "Embu Level 5 Hospital", assigned: 10 },
-                        ].map((nurse, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                <UserCircle className="text-primary" size={24} />
-                              </div>
-                              <div>
-                                <p className="font-semibold">{nurse.name}</p>
-                                <p className="text-sm text-muted-foreground">{nurse.department}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                <p className="font-semibold">{nurse.facility}</p>
-                                <p className="text-sm text-muted-foreground">{nurse.assigned} assigned</p>
-                              </div>
-                              <Badge>Active</Badge>
-                            </div>
+                          <UserCircle className="h-8 w-8 text-primary" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Nurses</p>
+                            <p className="text-3xl font-bold">{roleCountStats.nurses.total}</p>
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                          <UserCircle className="h-8 w-8 text-primary" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Pharmacists</p>
+                            <p className="text-3xl font-bold">{roleCountStats.pharmacists.total}</p>
+                          </div>
+                          <UserCircle className="h-8 w-8 text-primary" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Lab Technicians</p>
+                            <p className="text-3xl font-bold">{roleCountStats.labTechnicians.total}</p>
+                          </div>
+                          <UserCircle className="h-8 w-8 text-primary" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <Tabs defaultValue="doctors" className="space-y-6">
+                    <TabsList>
+                      <TabsTrigger value="doctors">Doctors</TabsTrigger>
+                      <TabsTrigger value="nurses">Nurses</TabsTrigger>
+                      <TabsTrigger value="pharmacists">Pharmacists</TabsTrigger>
+                      <TabsTrigger value="lab-technicians">Lab Technicians</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="doctors">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Registered Doctors ({roleCountStats.doctors.total})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {providerCounts.doctors.length === 0 ? (
+                              <p className="text-muted-foreground text-center py-4">No doctors registered yet</p>
+                            ) : (
+                              providerCounts.doctors.map((doctor) => (
+                                <div key={doctor.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                      <UserCircle className="text-primary" size={24} />
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold">{doctor.full_name}</p>
+                                      <p className="text-sm text-muted-foreground">{doctor.email}</p>
+                                    </div>
+                                  </div>
+                                  <Badge className={doctor.status === 'active' ? 'bg-success/10 text-success' : ''}>
+                                    {doctor.status === 'active' ? 'Active' : doctor.status}
+                                  </Badge>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    <TabsContent value="nurses">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Registered Nurses ({roleCountStats.nurses.total})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {providerCounts.nurses.length === 0 ? (
+                              <p className="text-muted-foreground text-center py-4">No nurses registered yet</p>
+                            ) : (
+                              providerCounts.nurses.map((nurse) => (
+                                <div key={nurse.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                      <UserCircle className="text-primary" size={24} />
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold">{nurse.full_name}</p>
+                                      <p className="text-sm text-muted-foreground">{nurse.email}</p>
+                                    </div>
+                                  </div>
+                                  <Badge className={nurse.status === 'active' ? 'bg-success/10 text-success' : ''}>
+                                    {nurse.status === 'active' ? 'Active' : nurse.status}
+                                  </Badge>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
 
-                <TabsContent value="pharmacists">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Registered Pharmacists ({mockCounts.pharmacists.total})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {[
-                          { name: "Pharm. Michael Ouma", department: "Main Pharmacy", facility: "Kenyatta National Hospital", prescriptions: 156 },
-                          { name: "Pharm. Lucy Muthoni", department: "Outpatient Pharmacy", facility: "Nairobi Hospital", prescriptions: 98 },
-                          { name: "Pharm. Joseph Kariuki", department: "Emergency Pharmacy", facility: "Coast General Hospital", prescriptions: 87 },
-                        ].map((pharmacist, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                <UserCircle className="text-primary" size={24} />
-                              </div>
-                              <div>
-                                <p className="font-semibold">{pharmacist.name}</p>
-                                <p className="text-sm text-muted-foreground">{pharmacist.department}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                <p className="font-semibold">{pharmacist.facility}</p>
-                                <p className="text-sm text-muted-foreground">{pharmacist.prescriptions} prescriptions</p>
-                              </div>
-                              <Badge>Active</Badge>
-                            </div>
+                    <TabsContent value="pharmacists">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Registered Pharmacists ({roleCountStats.pharmacists.total})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {providerCounts.pharmacists.length === 0 ? (
+                              <p className="text-muted-foreground text-center py-4">No pharmacists registered yet</p>
+                            ) : (
+                              providerCounts.pharmacists.map((pharmacist) => (
+                                <div key={pharmacist.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                      <UserCircle className="text-primary" size={24} />
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold">{pharmacist.full_name}</p>
+                                      <p className="text-sm text-muted-foreground">{pharmacist.email}</p>
+                                    </div>
+                                  </div>
+                                  <Badge className={pharmacist.status === 'active' ? 'bg-success/10 text-success' : ''}>
+                                    {pharmacist.status === 'active' ? 'Active' : pharmacist.status}
+                                  </Badge>
+                                </div>
+                              ))
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
 
-                <TabsContent value="lab-technicians">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Registered Lab Technicians ({mockCounts.labTechnicians.total})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {[
-                          { name: "Lab Tech. Susan Achieng", department: "Hematology", facility: "Kenyatta National Hospital", tests: 247 },
-                          { name: "Lab Tech. Brian Kimani", department: "Microbiology", facility: "Moi Teaching and Referral Hospital", tests: 189 },
-                          { name: "Lab Tech. Faith Njoki", department: "Biochemistry", facility: "Embu Level 5 Hospital", tests: 156 },
-                        ].map((labTech, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                <UserCircle className="text-primary" size={24} />
-                              </div>
-                              <div>
-                                <p className="font-semibold">{labTech.name}</p>
-                                <p className="text-sm text-muted-foreground">{labTech.department}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                <p className="font-semibold">{labTech.facility}</p>
-                                <p className="text-sm text-muted-foreground">{labTech.tests} tests</p>
-                              </div>
-                              <Badge>Active</Badge>
-                            </div>
+                    <TabsContent value="lab-technicians">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Registered Lab Technicians ({roleCountStats.labTechnicians.total})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {providerCounts.labTechnicians.length === 0 ? (
+                              <p className="text-muted-foreground text-center py-4">No lab technicians registered yet</p>
+                            ) : (
+                              providerCounts.labTechnicians.map((labTech) => (
+                                <div key={labTech.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                      <UserCircle className="text-primary" size={24} />
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold">{labTech.full_name}</p>
+                                      <p className="text-sm text-muted-foreground">{labTech.email}</p>
+                                    </div>
+                                  </div>
+                                  <Badge className={labTech.status === 'active' ? 'bg-success/10 text-success' : ''}>
+                                    {labTech.status === 'active' ? 'Active' : labTech.status}
+                                  </Badge>
+                                </div>
+                              ))
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </>
+              )}
             </div>
           )}
 
@@ -1123,11 +1176,11 @@ const AdminDashboard = () => {
                           Total {activeTab === "users-doctors" ? "Doctors" : activeTab === "users-nurses" ? "Nurses" : activeTab === "users-patients" ? "Patients" : activeTab === "users-pharmacists" ? "Pharmacists" : "Lab Technicians"}
                         </p>
                         <p className="text-3xl font-bold">
-                          {activeTab === "users-doctors" ? mockCounts.doctors.total : 
-                           activeTab === "users-nurses" ? mockCounts.nurses.total : 
-                           activeTab === "users-patients" ? mockCounts.patients.total : 
-                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.total : 
-                           mockCounts.labTechnicians.total}
+                          {activeTab === "users-doctors" ? roleCountStats.doctors.total : 
+                           activeTab === "users-nurses" ? roleCountStats.nurses.total : 
+                           activeTab === "users-patients" ? roleCountStats.patients.total : 
+                           activeTab === "users-pharmacists" ? roleCountStats.pharmacists.total : 
+                           roleCountStats.labTechnicians.total}
                         </p>
                       </div>
                       <Users className="h-8 w-8 text-primary" />
@@ -1140,11 +1193,11 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Active</p>
                         <p className="text-3xl font-bold text-success">
-                          {activeTab === "users-doctors" ? mockCounts.doctors.active : 
-                           activeTab === "users-nurses" ? mockCounts.nurses.active : 
-                           activeTab === "users-patients" ? mockCounts.patients.active : 
-                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.active : 
-                           mockCounts.labTechnicians.active}
+                          {activeTab === "users-doctors" ? roleCountStats.doctors.active : 
+                           activeTab === "users-nurses" ? roleCountStats.nurses.active : 
+                           activeTab === "users-patients" ? roleCountStats.patients.active : 
+                           activeTab === "users-pharmacists" ? roleCountStats.pharmacists.active : 
+                           roleCountStats.labTechnicians.active}
                         </p>
                       </div>
                       <CheckCircle className="h-8 w-8 text-success" />
@@ -1156,13 +1209,7 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Suspended</p>
-                        <p className="text-3xl font-bold text-warning">
-                          {activeTab === "users-doctors" ? mockCounts.doctors.suspended : 
-                           activeTab === "users-nurses" ? mockCounts.nurses.suspended : 
-                           activeTab === "users-patients" ? mockCounts.patients.suspended : 
-                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.suspended : 
-                           mockCounts.labTechnicians.suspended}
-                        </p>
+                        <p className="text-3xl font-bold text-warning">0</p>
                       </div>
                       <AlertTriangle className="h-8 w-8 text-warning" />
                     </div>
@@ -1173,13 +1220,7 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Deactivated</p>
-                        <p className="text-3xl font-bold text-destructive">
-                          {activeTab === "users-doctors" ? mockCounts.doctors.deactivated : 
-                           activeTab === "users-nurses" ? mockCounts.nurses.deactivated : 
-                           activeTab === "users-patients" ? mockCounts.patients.deactivated : 
-                           activeTab === "users-pharmacists" ? mockCounts.pharmacists.deactivated : 
-                           mockCounts.labTechnicians.deactivated}
-                        </p>
+                        <p className="text-3xl font-bold text-destructive">0</p>
                       </div>
                       <X className="h-8 w-8 text-destructive" />
                     </div>
