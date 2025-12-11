@@ -271,14 +271,20 @@ const AdminDashboard = () => {
         description: "The user can now log in to the system."
       });
       
-      // Remove from list after showing "Activated" for 2 seconds
+      // Remove from pending list immediately - don't refetch
       setTimeout(() => {
+        setPendingUsers(prev => prev.filter(u => u.id !== userId));
         setActivatedUsers(prev => {
           const next = new Set(prev);
           next.delete(userId);
           return next;
         });
-        fetchPendingUsers();
+        // Clear the selected role for this user
+        setSelectedRoles(prev => {
+          const next = { ...prev };
+          delete next[userId];
+          return next;
+        });
         fetchStats();
       }, 2000);
     } catch (error: any) {

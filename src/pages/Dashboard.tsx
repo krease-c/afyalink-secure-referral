@@ -75,6 +75,11 @@ const Dashboard = () => {
     );
   }
 
+  const handleCheckStatus = async () => {
+    setLoading(true);
+    await fetchUserData();
+  };
+
   // Show pending approval message if user is not active
   if (userStatus !== "active") {
     return (
@@ -98,9 +103,14 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">
               Please check back later or contact the administrator if you need immediate access.
             </p>
-            <Button variant="outline" onClick={handleLogout} className="w-full">
-              Sign Out
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleCheckStatus} className="w-full">
+                Check Status
+              </Button>
+              <Button variant="outline" onClick={handleLogout} className="w-full">
+                Sign Out
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
