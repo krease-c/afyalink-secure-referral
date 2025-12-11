@@ -156,6 +156,8 @@ const AdminDashboard = () => {
   const [referrals, setReferrals] = useState<any[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(false);
   const [activatingUsers, setActivatingUsers] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
   const [activatedUsers, setActivatedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -222,8 +224,33 @@ const AdminDashboard = () => {
   };
 
   const handleActivateUser = async (userId: string) => {
+    const selectedRole = selectedRoles[userId];
+    
+    // Check if user already has a role or admin selected one
+    const user = pendingUsers.find(u => u.id === userId);
+    const hasExistingRole = user?.roles && user.roles.length > 0;
+    
+    if (!hasExistingRole && !selectedRole) {
+      toast({
+        title: "Role Required",
+        description: "Please select a role for this user before activating.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setActivatingUsers(prev => new Set(prev).add(userId));
     try {
+      // If user doesn't have a role, assign the selected one
+      if (!hasExistingRole && selectedRole) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role: selectedRole as "admin" | "doctor" | "nurse" | "patient" | "pharmacist" | "lab_technician" });
+        
+        if (roleError) throw roleError;
+      }
+
+      // Activate the user
       const { error } = await supabase
         .from("profiles")
         .update({ status: "active" })
@@ -615,8 +642,10 @@ const AdminDashboard = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
               <Input
                 type="text"
-                placeholder="Search referrals, facilities, providers..."
+                placeholder="Search referrals, facilities, users..."
                 className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
@@ -703,7 +732,15 @@ const AdminDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {referrals.map((referral) => (
+                      {referrals
+                        .filter(referral => 
+                          searchQuery === "" ||
+                          referral.reason?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          referral.facility_from?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          referral.facility_to?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          referral.diagnosis?.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((referral) => (
                         <div key={referral.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -810,7 +847,14 @@ const AdminDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {dbFacilities.map((facility) => (
+                      {dbFacilities
+                        .filter(facility =>
+                          searchQuery === "" ||
+                          facility.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          facility.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          facility.address?.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((facility) => (
                         <div key={facility.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -1358,8 +1402,14 @@ const AdminDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {pendingUsers.map((user) => (
-                          <div className={`flex items-center justify-between p-4 rounded-lg border ${
+                      {pendingUsers
+                        .filter(user => 
+                          searchQuery === "" || 
+                          user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          user.email.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((user) => (
+                          <div key={user.id} className={`flex items-center justify-between p-4 rounded-lg border ${
                             activatedUsers.has(user.id) 
                               ? 'bg-success/10 border-success/30' 
                               : 'bg-muted/30 border-warning/20'
@@ -1380,12 +1430,28 @@ const AdminDashboard = () => {
                               <p className="font-semibold">{user.full_name}</p>
                               <p className="text-sm text-muted-foreground">{user.email}</p>
                               <div className="flex items-center gap-2 mt-1">
-                                {user.roles.length > 0 && (
+                                {user.roles.length > 0 ? (
                                   user.roles.map((role, i) => (
                                     <Badge key={i} variant="outline" className="capitalize">
                                       {role.replace('_', ' ')}
                                     </Badge>
                                   ))
+                                ) : !activatedUsers.has(user.id) && (
+                                  <Select
+                                    value={selectedRoles[user.id] || ""}
+                                    onValueChange={(value) => setSelectedRoles(prev => ({ ...prev, [user.id]: value }))}
+                                  >
+                                    <SelectTrigger className="w-40 h-8">
+                                      <SelectValue placeholder="Select role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="doctor">Doctor</SelectItem>
+                                      <SelectItem value="nurse">Nurse</SelectItem>
+                                      <SelectItem value="patient">Patient</SelectItem>
+                                      <SelectItem value="pharmacist">Pharmacist</SelectItem>
+                                      <SelectItem value="lab_technician">Lab Technician</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 )}
                               </div>
                             </div>
